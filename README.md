@@ -37,21 +37,59 @@ warning: unknown[<IP>]: SASL LOGIN authentication failed: ...
 
 ## Installation
 
-This repo is **not (yet) listed in the official Crowdsec Hub**, so `cscli scenarios install` won't find it. Install manually:
+This repo is **not (yet) listed in the official Crowdsec Hub**, so `cscli scenarios install` won't find it.
+
+### Quick install (recommended)
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Guezli/postfix-sasl-bf/main/install.sh | sudo bash
+```
+
+The [`install.sh`](install.sh) script does, idempotent:
+
+1. Verifies Crowdsec is installed
+2. Installs the `crowdsecurity/postfix` collection if missing (provides the parser)
+3. Auto-detects your postfix log source:
+   - **Mailcow** running? → adds a docker-acquisition for `mailcowdockerized-postfix-mailcow-1`
+   - Otherwise `/var/log/mail.log` exists? → adds a file-acquisition
+   - Otherwise warns you to add one manually
+4. Downloads the scenario to `/etc/crowdsec/scenarios/postfix-sasl-bf.yaml`
+5. Reloads Crowdsec
+6. Verifies the scenario loaded
+
+If you already have a postfix acquisition configured, the script leaves it alone.
+
+### Manual install
+
+If you'd rather see what changes are made:
+
+```bash
+# 1. Scenario
 sudo curl -fsSL -o /etc/crowdsec/scenarios/postfix-sasl-bf.yaml \
   https://raw.githubusercontent.com/Guezli/postfix-sasl-bf/main/scenarios/postfix-sasl-bf.yaml
+
+# 2. Acquisition (Mailcow example)
+sudo tee /etc/crowdsec/acquis.d/postfix-sasl-bf.yaml >/dev/null <<'EOF'
+source: docker
+container_name:
+  - mailcowdockerized-postfix-mailcow-1
+labels:
+  type: syslog
+EOF
+
+# 3. Reload
 sudo systemctl reload crowdsec
 ```
 
-Verify it's loaded:
+Verify:
 
 ```bash
 sudo cscli scenarios list | grep postfix-sasl-bf
 ```
 
-To upgrade later, just re-run the same `curl` command and reload.
+### Upgrading
+
+Just re-run `install.sh` — it overwrites the scenario file in place and reloads Crowdsec. The acquisition is left untouched.
 
 ## Requirements
 
