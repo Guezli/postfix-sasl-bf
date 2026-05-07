@@ -37,31 +37,39 @@ warning: unknown[<IP>]: SASL LOGIN authentication failed: ...
 
 ## Installation
 
-This repo is **not (yet) listed in the official Crowdsec Hub**, so `cscli scenarios install` won't find it.
+This repo is **not (yet) listed in the official Crowdsec Hub**, so `cscli scenarios install` won't find it. Use the bundled installer instead.
 
-### Quick install (recommended)
+### One command, done
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Guezli/postfix-sasl-bf/main/install.sh | sudo bash
 ```
 
-The [`install.sh`](install.sh) script does, idempotent:
+That's it. The script handles everything end-to-end and exits when it's done — there's nothing else to configure. Re-run the same command anytime to upgrade to the latest scenario version (the script is idempotent and safe to run repeatedly).
 
-1. Verifies Crowdsec is installed
-2. Installs the `crowdsecurity/postfix` collection if missing (provides the parser)
-3. Auto-detects your postfix log source:
-   - **Mailcow** running? → adds a docker-acquisition for `mailcowdockerized-postfix-mailcow-1`
-   - Otherwise `/var/log/mail.log` exists? → adds a file-acquisition
-   - Otherwise warns you to add one manually
-4. Downloads the scenario to `/etc/crowdsec/scenarios/postfix-sasl-bf.yaml`
-5. Reloads Crowdsec
-6. Verifies the scenario loaded
+### How [`install.sh`](install.sh) works
 
-If you already have a postfix acquisition configured, the script leaves it alone.
+It's a ~150-line bash script that performs six steps and exits. Nothing runs in the background, nothing gets installed as a service.
 
-### Manual install
+| Step | What it does | If already done |
+|---|---|---|
+| 1 | Checks `cscli` is on PATH | aborts with error if Crowdsec isn't installed |
+| 2 | Installs `crowdsecurity/postfix` collection (provides the postfix-logs parser the scenario depends on) | skipped |
+| 3 | Detects a postfix log source: **Mailcow container** (`mailcowdockerized-postfix-mailcow-1`) → docker acquisition; else **/var/log/mail.log** → file acquisition; else warns | skipped if any existing acquisition already references postfix |
+| 4 | Downloads `scenarios/postfix-sasl-bf.yaml` from this repo to `/etc/crowdsec/scenarios/` | skipped if file is already byte-identical |
+| 5 | `systemctl reload crowdsec` | warns if Crowdsec isn't active |
+| 6 | Verifies the scenario shows up in `cscli scenarios list` | aborts with error if not |
 
-If you'd rather see what changes are made:
+The script makes **no other changes** — it doesn't touch your existing collections, parsers, profiles, bouncers, or any non-postfix acquisitions.
+
+### Verify it worked
+
+```bash
+sudo cscli scenarios list | grep postfix-sasl-bf
+sudo cscli alerts list --scenario Guezli/postfix-sasl-bf --since 24h
+```
+
+### Manual install (if you'd rather inspect every change)
 
 ```bash
 # 1. Scenario
@@ -80,16 +88,6 @@ EOF
 # 3. Reload
 sudo systemctl reload crowdsec
 ```
-
-Verify:
-
-```bash
-sudo cscli scenarios list | grep postfix-sasl-bf
-```
-
-### Upgrading
-
-Just re-run `install.sh` — it overwrites the scenario file in place and reloads Crowdsec. The acquisition is left untouched.
 
 ## Requirements
 
