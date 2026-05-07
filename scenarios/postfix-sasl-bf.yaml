@@ -1,0 +1,45 @@
+# Detect slow / distributed SASL LOGIN bruteforce against postfix.
+#
+# The official `crowdsecurity/postfix-spam` scenario is tuned for fast
+# spam waves (capacity 5 / leak 10s). It misses distributed bruteforces
+# where many IPs each try only a couple of times per hour, because the
+# bucket leaks faster than it fills.
+#
+# This scenario uses a much slower leak so a single IP that fails
+# 3+ SASL LOGINs within a few hours triggers a ban.
+#
+# Requires the official `crowdsecurity/postfix-logs` parser, which
+# already extracts `evt.Meta.source_ip` from the syslog line:
+#   "warning: unknown[<IP>]: SASL LOGIN authentication failed: ..."
+
+type: leaky
+name: Guezli/postfix-sasl-bf
+description: "Detect slow / distributed SASL bruteforce against postfix"
+
+filter: |
+  evt.Meta.log_type == 'postfix'
+  && evt.Parsed.message contains 'SASL'
+  && evt.Parsed.message contains 'authentication failed'
+
+groupby: evt.Meta.source_ip
+
+# bucket holds 2 tokens, leaks 1 token every 2h
+# => 3 fails within ~2h overflow the bucket
+capacity: 2
+leakspeed: 7200s
+blackhole: 2h
+
+labels:
+  service: postfix
+  type: bruteforce
+  remediation: true
+  confidence: 3
+  spoofable: 0
+  behavior: "smtp:bruteforce"
+  label: "Postfix SASL Bruteforce"
+  classification:
+    - "attack.T1110.001"   # MITRE: Brute Force - Password Guessing
+
+references:
+  - "https://www.postfix.org/SASL_README.html"
+  - "https://hub.crowdsec.net/author/crowdsecurity/collections/postfix"

@@ -1,0 +1,8 @@
+scenarios:
+  - Guezli/postfix-sasl-bf
+
+# Expected: 4 SASL fails from one IP within 5 minutes -> 1 overflow
+# (capacity 2, leakspeed 7200s -> 3rd fail already overflows)
+#
+# Run with:
+#   cscli hubtest run postfix-sasl-bf --clean

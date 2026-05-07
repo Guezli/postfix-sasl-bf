@@ -1,0 +1,5 @@
+parsers:
+  - crowdsecurity/syslog-logs
+  - crowdsecurity/dateparse-enrich
+  - crowdsecurity/postfix-logs
+  - crowdsecurity/geoip-enrich
