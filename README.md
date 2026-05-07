@@ -140,6 +140,17 @@ If you want stricter (e.g. you know no internal SMTP-AUTH should ever fail):
 - Mitigation: whitelist your office IP / VPN range via `crowdsecurity/whitelists` or a custom whitelist
 - For multi-tenant mailservers consider raising `capacity` to 4-5
 
+## Pairs well with
+
+This scenario covers slow/distributed SMTP-bruteforce, but real Mailcow setups face attacks on more layers. Companion scenarios:
+
+- **[`Guezli/postfix-honeypot-users`](https://github.com/Guezli/postfix-honeypot-users)** — instant-bans IPs that try SASL LOGIN with well-known role addresses (`postmaster@`, `admin@`, `info@`, …) that should never be actual SMTP login accounts. Catches the **distributed wordlist-style** bruteforce where each IP only tries 1-2 attempts and slips below this scenario's threshold.
+- **[`melite/dovecot-slow-bf`](https://hub.crowdsec.net/author/melite/scenarios/dovecot-slow-bf)** — same idea as this scenario but for **IMAP/POP3** (Dovecot) instead of SMTP (Postfix). Install via `cscli scenarios install melite/dovecot-slow-bf`.
+- **[`melite/dovecot-time-based-bf`](https://hub.crowdsec.net/author/melite/scenarios/dovecot-time-based-bf)** — time-distributed IMAP-bruteforce variant. `cscli scenarios install melite/dovecot-time-based-bf`.
+- **`crowdsecurity/postfix`** collection — the official one. Already gives you `postfix-spam` (fast-spam waves), `postfix-non-smtp-command`, `postfix-relay-denied`, `postfix-helo-rejected`, `postscreen-rbl`. `cscli collections install crowdsecurity/postfix`.
+
+Together these cover the bulk of inbound bruteforce traffic on a typical Mailcow setup — SMTP slow & honeypot, IMAP slow & time-based, plus the official fast-pattern coverage.
+
 ## Detection background
 
 Built and validated against Mailcow on a VPS that sees ~30 distinct slow-bruteforce IPs per day, mostly from small VPS-hosted bot networks (KOI Cloud Services, Ayosoft, DigitalOcean, etc.). The threshold math (`capacity / leakspeed`) was chosen to catch attackers averaging ≥1.5 attempts/hour per IP, while leaving headroom for clumsy humans.
