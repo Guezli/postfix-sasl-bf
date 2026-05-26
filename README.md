@@ -4,6 +4,10 @@
 > Specifically built for and tested with **[Mailcow](https://mailcow.email/)**
 > running Crowdsec on the host (not inside the Mailcow stack).
 
+> [!NOTE]
+> **Now available in the official [Crowdsec Hub](https://hub.crowdsec.net/author/Guezli/configurations/postfix-sasl-bf).**
+> Install with `sudo cscli scenarios install Guezli/postfix-sasl-bf` — see [Installation](#installation) below.
+
 ## Why this exists
 
 The official [`crowdsecurity/postfix-spam`](https://hub.crowdsec.net/author/crowdsecurity/scenarios/postfix-spam) scenario is tuned for *fast* spam waves:
@@ -37,15 +41,25 @@ warning: unknown[<IP>]: SASL LOGIN authentication failed: ...
 
 ## Installation
 
-This repo is **not (yet) listed in the official Crowdsec Hub**, so `cscli scenarios install` won't find it. Use the bundled installer instead.
+### Recommended: from the official Hub
 
-### One command, done
+```bash
+sudo cscli collections install crowdsecurity/postfix    # provides the postfix-logs parser
+sudo cscli scenarios install Guezli/postfix-sasl-bf
+sudo systemctl reload crowdsec
+```
+
+You still need an acquisition that reads postfix logs — see the [Requirements](#requirements) section below for examples.
+
+### Alternative: bundled installer (auto-configures Mailcow acquisition)
+
+If you're running Mailcow and want the acquisition snippet for the dockerized postfix container auto-detected and written in one step, this repo ships a small installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Guezli/postfix-sasl-bf/main/install.sh | sudo bash
 ```
 
-That's it. The script handles everything end-to-end and exits when it's done — there's nothing else to configure. Re-run the same command anytime to upgrade to the latest scenario version (the script is idempotent and safe to run repeatedly).
+The script handles everything end-to-end (collection + scenario + Mailcow-or-file acquisition detection + reload) and exits when it's done. Re-run the same command anytime to refresh; the script is idempotent and safe to repeat.
 
 ### How [`install.sh`](install.sh) works
 
